@@ -1,0 +1,63 @@
+---
+interface Props { title: string; description?: string }
+const { title, description = 'Álvaro Inostroza. Arquitecto de Sentido en Sistemas Complejos.' } = Astro.props;
+const path = Astro.url.pathname;
+const links = [
+  { href: '/', label: 'Inicio' },
+  { href: '/acerca/', label: 'Sobre mí' },
+  { href: '/blog/', label: 'Proyectos' },
+  { href: '/#contacto', label: 'Contacto' },
+];
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300..700&display=swap" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="barra">
+      <a class="marca" href="/">alvaroinostroza.cl</a>
+      <nav>
+        {links.map((l) => (
+          <a href={l.href} aria-current={path === l.href ? 'page' : undefined}>{l.label}</a>
+        ))}
+      </nav>
+    </header>
+    <slot />
+    <footer class="pie">© {new Date().getFullYear()} Álvaro Inostroza González</footer>
+  </body>
+</html>
+<style is:global>
+  :root {
+    --fondo: #050d1c; --fondo2: #0a1830; --tinta: #e8eef8; --suave: #8fa3c0;
+    --azul: #6fa8ff; --violeta: #9d7bff; --cian: #7fe3ff; --linea: rgba(120, 160, 230, .14);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; background: var(--fondo); }
+  body {
+    margin: 0; min-height: 100vh; color: var(--tinta); line-height: 1.6;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    background:
+      radial-gradient(ellipse 80% 700px at 70% 380px, #12305e 0%, var(--fondo2) 45%, var(--fondo) 100%) var(--fondo);
+  }
+  a { color: var(--cian); }
+  .barra {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
+    max-width: 1200px; margin: 0 auto; padding: 1.1rem 1.5rem;
+  }
+  .marca { color: var(--tinta); text-decoration: none; font-weight: 600; letter-spacing: .02em; }
+  .barra nav { display: flex; gap: 1.6rem; }
+  .barra nav a { color: var(--suave); text-decoration: none; font-size: .85rem; padding-bottom: 3px; }
+  .barra nav a:hover { color: var(--tinta); }
+  .barra nav a[aria-current='page'] { color: var(--tinta); border-bottom: 1px solid var(--azul); }
+  .contenido { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .contenido h1 { font-weight: 700; letter-spacing: .02em; }
+  .pie { text-align: center; color: var(--suave); font-size: .8rem; padding: 2.5rem 1rem; }
+</style>

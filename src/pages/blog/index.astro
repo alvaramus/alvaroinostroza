@@ -1,0 +1,18 @@
+---
+import Base from '../../layouts/Base.astro';
+import Tarjeta from '../../components/Tarjeta.astro';
+import { getCollection } from 'astro:content';
+const posts = (await getCollection('blog', (p) => !p.data.borrador))
+  .sort((a, b) => Number(b.data.proximamente) - Number(a.data.proximamente) || b.data.fecha.valueOf() - a.data.fecha.valueOf());
+---
+<Base title="Artículos | Álvaro Inostroza">
+  <main class="pagina">
+    <h1>Artículos</h1>
+    <div class="grilla">{posts.map((post) => <Tarjeta post={post} />)}</div>
+  </main>
+</Base>
+<style>
+  .pagina { max-width: 1140px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1.5rem; }
+</style>

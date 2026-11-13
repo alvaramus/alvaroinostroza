@@ -1,0 +1,70 @@
+---
+// Tarjeta de artículo: imagen, categoría, título, extracto y fecha
+import type { CollectionEntry } from 'astro:content';
+import { esferaDe } from '../data/esferas';
+interface Props { post: CollectionEntry<'blog'> }
+const { post } = Astro.props;
+const d = post.data;
+const url = d.enlace ?? `/blog/${post.id}/`;
+const externo = !!d.enlace;
+const fecha = d.proximamente ? 'Próximamente'
+  : d.fecha.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+// Color de la portada automática según la esfera del artículo
+const esfera = esferaDe(d.categoria);
+const tono = esfera?.tono ?? '#6fa8ff';
+
+// Constelación única generada a partir del título (siempre la misma para cada artículo)
+let semilla = [...d.titulo].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+const azar = () => ((semilla = (semilla * 1664525 + 1013904223) >>> 0) / 4294967296);
+const nodos = Array.from({ length: 11 }, () => ({ x: 20 + azar() * 280, y: 18 + azar() * 164, r: 1.5 + azar() * 4.5 }));
+const lineas: [number, number][] = [];
+nodos.forEach((a, i) => {
+  const cercanos = nodos.map((b, j) => ({ j, d: Math.hypot(a.x - b.x, a.y - b.y) })).filter((o) => o.j !== i).sort((p, q) => p.d - q.d);
+  cercanos.slice(0, 2).forEach(({ j }) => { if (i < j) lineas.push([i, j]); else if (!lineas.some(([p, q]) => p === j && q === i)) lineas.push([j, i]); });
+});
+---
+<article class="tarjeta" style={`--tono:${tono}`}>
+  <a class="portada-img" href={url} target={externo ? '_blank' : undefined} tabindex="-1" aria-hidden="true">
+    {d.imagen
+      ? <img src={d.imagen} alt="" loading="lazy" />
+      : <svg class="generada" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id={`brillo-${post.id}`}><stop offset="0" stop-color="#fff" stop-opacity=".95" /><stop offset=".35" stop-color={tono} stop-opacity=".8" /><stop offset="1" stop-color={tono} stop-opacity="0" /></radialGradient>
+            <radialGradient id={`fondo-${post.id}`} cx=".5" cy="1.1" r=".9"><stop offset="0" stop-color={tono} stop-opacity=".45" /><stop offset="1" stop-color="#060c1c" stop-opacity="0" /></radialGradient>
+          </defs>
+          <rect width="320" height="200" fill="#070f24" />
+          <rect width="320" height="200" fill={`url(#fondo-${post.id})`} />
+          {lineas.map(([a, b]) => <line x1={nodos[a].x} y1={nodos[a].y} x2={nodos[b].x} y2={nodos[b].y} stroke={tono} stroke-opacity=".45" stroke-width=".8" />)}
+          {nodos.map((n) => <circle cx={n.x} cy={n.y} r={n.r * 3} fill={`url(#brillo-${post.id})`} />)}
+        </svg>}
+  </a>
+  <div class="cuerpo">
+    <span class="cat">{d.categoria}</span>
+    <h3><a href={url} target={externo ? '_blank' : undefined}>{d.titulo}</a></h3>
+    <p class="resumen">{d.resumen}</p>
+    <p class="pie-tarjeta"><span>Álvaro Inostroza · {fecha}</span><span class="flecha">→</span></p>
+  </div>
+</article>
+<style>
+  .tarjeta {
+    position: relative; display: flex; flex-direction: column; overflow: hidden;
+    background: linear-gradient(180deg, rgba(20, 34, 66, .75), rgba(8, 16, 34, .85));
+    border: 1px solid rgba(140, 170, 230, .16); border-radius: 14px;
+    transition: transform .35s ease, border-color .35s ease, box-shadow .35s ease;
+  }
+  .tarjeta:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--tono) 60%, transparent); box-shadow: 0 12px 40px -10px color-mix(in srgb, var(--tono) 45%, transparent); }
+  .portada-img { display: block; text-decoration: none; aspect-ratio: 16 / 10; overflow: hidden; }
+  .portada-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s ease; }
+  .tarjeta:hover .portada-img img { transform: scale(1.05); }
+  .generada { width: 100%; height: 100%; display: block; transition: transform .6s ease; }
+  .tarjeta:hover .generada { transform: scale(1.05); }
+  .cuerpo { display: flex; flex-direction: column; gap: .55rem; padding: 1.2rem 1.3rem 1.3rem; flex: 1; }
+  .cat { align-self: flex-start; font-size: .68rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--tono); border: 1px solid color-mix(in srgb, var(--tono) 50%, transparent); border-radius: 999px; padding: .2rem .65rem; }
+  h3 { margin: 0; font-family: Georgia, serif; font-weight: 400; font-size: 1.25rem; line-height: 1.3; }
+  h3 a { color: var(--tinta); text-decoration: none; }
+  h3 a::after { content: ''; position: absolute; inset: 0; } /* toda la tarjeta es clickeable */
+  .resumen { margin: 0; color: #b9c5da; font-family: Georgia, serif; font-size: .98rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .pie-tarjeta { margin: auto 0 0; padding-top: .6rem; display: flex; justify-content: space-between; font-size: .78rem; color: var(--suave); }
+  .flecha { color: var(--tono); transition: transform .3s; }
+  .tarjeta:hover .flecha { transform: translateX(4px); }
+</style>

@@ -1,0 +1,284 @@
+---
+// Red de esferas animada. Cada esfera flota suavemente y está conectada por filamentos de luz.
+const iconos: Record<string, string> = {
+  pensamiento: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>',
+  ciencia: '<circle cx="12" cy="12" r="1.6"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(120 12 12)"/>',
+  escritura: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+  liderazgo: '<circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2"/><circle cx="19" cy="10" r="2"/><path d="M6.5 20a5.5 5.5 0 0 1 11 0M1.5 18a3.5 3.5 0 0 1 4.5-3.3M22.5 18a3.5 3.5 0 0 0-4.5-3.3"/>',
+  docencia: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6"/>',
+  musica: '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+  datos: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="12" cy="10" r="2"/><path d="M6.7 7l3.6 2M17.3 7l-3.6 2M12 12v4"/>',
+};
+
+import { esferas as lista, nucleo } from '../data/esferas';
+// El núcleo va en la posición 3 porque las conexiones (enlaces) usan ese orden y el 3 se conecta con todas
+const esferas = [
+  ...lista.slice(0, 3).map((e) => ({ ...e, href: `/esferas/${e.slug}/`, centro: false })),
+  { ...nucleo, href: nucleo.href, centro: true },
+  ...lista.slice(3).map((e) => ({ ...e, href: `/esferas/${e.slug}/`, centro: false })),
+];
+// Conexiones entre esferas por índice
+const enlaces = [[0,1],[0,2],[0,3],[1,3],[1,4],[2,3],[2,5],[3,4],[3,5],[3,6],[4,6],[5,6],[0,5],[1,6]];
+---
+<div class="red" data-enlaces={JSON.stringify(enlaces)}>
+  <canvas aria-hidden="true"></canvas>
+  {esferas.map((e) => (
+    <a class={`esfera etiqueta-${e.pos}${e.centro ? ' nucleo' : ''}`} href={e.href} title={e.frase} data-x={e.x} data-y={e.y}
+       style={`--x:${e.x}%; --y:${e.y}%; --r:${e.r}; --tono:${e.tono}; --giro:${(e.x*7+e.y*3)%360}deg`}>
+      <span class="bola">
+        {e.centro
+          ? <span class="iniciales">{(e as any).iniciales}</span>
+          : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" set:html={iconos[e.id]} />}
+      </span>
+      <span class="nombre">{e.nombre}</span>
+    </a>
+  ))}
+</div>
+
+<style>
+  .red { --tam: clamp(58px, 13.5vw, 90px); position: relative; width: 100%; aspect-ratio: 1; max-width: 580px; margin: 0 auto 2.5rem; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .esfera { position: absolute; left: var(--x); top: var(--y); width: 0; height: 0; text-decoration: none; color: var(--tinta); z-index: 2; will-change: transform; }
+  .bola {
+    position: absolute; width: calc(var(--tam) * var(--r)); aspect-ratio: 1; transform: translate(-50%, -50%);
+    border-radius: 50%; display: grid; place-items: center; overflow: hidden; isolation: isolate;
+    color: rgba(200, 215, 255, .55);
+    background:
+      radial-gradient(ellipse 48% 34% at 38% 24%, rgba(255,255,255,.55) 0%, rgba(220,230,255,.18) 45%, transparent 75%),
+      radial-gradient(circle at 70% 85%, rgba(120,90,255,.35) 0%, transparent 45%),
+      radial-gradient(circle at 46% 42%, #262a66 0%, #15173f 38%, #0a0b26 68%, #040516 100%);
+    box-shadow:
+      0 0 14px 2px rgba(150, 140, 255, .35), 0 0 40px 8px rgba(110, 120, 255, .14),
+      inset 0 -10px 22px rgba(0, 0, 0, .55), inset 0 2px 6px rgba(255, 255, 255, .25);
+    transition: transform .5s ease, box-shadow .5s ease;
+  }
+  /* Borde iridiscente que gira lentamente */
+  .bola::before {
+    content: ''; position: absolute; inset: 0; border-radius: 50%; z-index: -1;
+    background: conic-gradient(from var(--giro), #3de0c8, #4b7bff, #b05cff, #ff7aa8, #ffb067, #c9e86b, #3de0c8);
+    -webkit-mask: radial-gradient(circle at 46% 42%, transparent 52%, rgba(0,0,0,.35) 64%, #000 74%);
+    mask: radial-gradient(circle at 46% 42%, transparent 52%, rgba(0,0,0,.35) 64%, #000 74%);
+    opacity: .75; mix-blend-mode: screen; filter: blur(1.5px) saturate(1.2);
+    animation: irisar 18s linear infinite;
+  }
+  /* Brillo especular pequeño y reflejo inferior */
+  .bola::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background:
+      radial-gradient(circle at 33% 22%, rgba(255,255,255,.95) 0 2.5%, transparent 6%),
+      radial-gradient(ellipse 60% 20% at 50% 92%, rgba(170,220,255,.28), transparent 70%);
+    pointer-events: none;
+  }
+  .bola svg { width: 38%; height: 38%; opacity: .8; filter: drop-shadow(0 0 3px rgba(140,170,255,.6)); }
+  .esfera:hover .bola, .esfera:focus-visible .bola {
+    transform: translate(-50%, -50%) scale(1.12);
+    box-shadow: 0 0 22px 5px rgba(170, 160, 255, .6), 0 0 70px 16px rgba(120, 130, 255, .25), inset 0 -10px 22px rgba(0,0,0,.5);
+  }
+  .esfera:focus-visible { outline: none; }
+  .nombre {
+    position: absolute; white-space: nowrap; font-size: clamp(.62rem, 1.4vw, .8rem);
+    font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #e6ecff;
+    text-shadow: 0 0 8px rgba(5, 13, 28, .9), 0 0 14px rgba(110, 150, 255, .5);
+  }
+  .etiqueta-arriba .nombre { left: 0; bottom: calc(var(--tam) * var(--r) / 2 + 10px); transform: translateX(-50%); }
+  .etiqueta-abajo .nombre { left: 0; top: calc(var(--tam) * var(--r) / 2 + 10px); transform: translateX(-50%); }
+  .etiqueta-izquierda .nombre { right: calc(var(--tam) * var(--r) / 2 + 12px); top: 0; transform: translateY(-50%); }
+  .etiqueta-derecha .nombre { left: calc(var(--tam) * var(--r) / 2 + 12px); top: 0; transform: translateY(-50%); }
+  /* Núcleo: Álvaro, con brillo cálido que late */
+  .nucleo { z-index: 3; }
+  .nucleo .bola {
+    color: #fff3dc;
+    background:
+      radial-gradient(ellipse 48% 34% at 38% 24%, rgba(255,255,255,.7) 0%, rgba(255,240,220,.2) 45%, transparent 75%),
+      radial-gradient(circle at 50% 55%, #6b4a2a 0%, #3a2350 45%, #140c2e 75%, #060416 100%);
+    animation: latir 5s ease-in-out infinite;
+  }
+  .nucleo .bola::before { background: conic-gradient(from var(--giro), #ffd27a, #ff9a6b, #ff7aa8, #b05cff, #6f8bff, #7fe3ff, #ffd27a); opacity: .85; }
+  .nucleo .iniciales { font-size: calc(var(--tam) * var(--r) * .3); font-weight: 600; letter-spacing: .04em; text-shadow: 0 0 10px rgba(255, 210, 140, .9); }
+  .nucleo .nombre { color: #ffe9c4; text-shadow: 0 0 8px rgba(5,13,28,.9), 0 0 14px rgba(255, 190, 110, .55); }
+  .nucleo:hover .bola, .nucleo:focus-visible .bola { box-shadow: 0 0 28px 8px rgba(255, 200, 120, .55), 0 0 90px 22px rgba(255, 170, 110, .22), inset 0 -10px 22px rgba(0,0,0,.5); }
+  @keyframes latir {
+    0%, 100% { box-shadow: 0 0 18px 4px rgba(255, 200, 120, .4), 0 0 60px 14px rgba(255, 160, 110, .14), inset 0 -10px 22px rgba(0,0,0,.55), inset 0 2px 6px rgba(255,255,255,.25); }
+    50% { box-shadow: 0 0 26px 7px rgba(255, 205, 130, .6), 0 0 80px 20px rgba(255, 170, 110, .22), inset 0 -10px 22px rgba(0,0,0,.55), inset 0 2px 6px rgba(255,255,255,.25); }
+  }
+  @keyframes irisar { to { transform: rotate(360deg); } }
+  @media (max-width: 640px) {
+    .etiqueta-izquierda .nombre, .etiqueta-derecha .nombre { left: 0; right: auto; top: calc(var(--tam) * var(--r) / 2 + 8px); transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) { .bola::before, .nucleo .bola { animation: none; } }
+</style>
+
+<script>
+  function iniciar(red: HTMLElement) {
+    const canvas = red.querySelector('canvas')!;
+    const ctx = canvas.getContext('2d')!;
+    // Lienzo auxiliar para las fibras: se dibuja dos veces, una difuminada (resplandor) y otra nítida
+    const fib = document.createElement('canvas');
+    const fctx = fib.getContext('2d')!;
+    const esferas = [...red.querySelectorAll<HTMLElement>('.esfera')];
+    const enlaces: [number, number][] = JSON.parse(red.dataset.enlaces || '[]');
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+
+    const flot = esferas.map((_, i) => ({ ax: rnd(1, 2.2), ay: rnd(1.2, 2.6), fx: rnd(.05, .09), fy: rnd(.045, .08), p: rnd(0, 6.28) + i }));
+
+    // Haces de fibras: cada enlace tiene muchas fibras onduladas que se abren al centro y convergen en las esferas
+    const FIBRAS = 26;
+    const haces = enlaces.map(() => Array.from({ length: FIBRAS }, () => ({
+      d: rnd(-1, 1),                // posición dentro del haz
+      sal: rnd(-1, 1), lle: rnd(-1, 1), // punto de salida y llegada en el borde de cada esfera
+      amp: rnd(.4, 1), fr: rnd(1.2, 2.6), ph: rnd(0, 6.28), v: rnd(.15, .35),
+      a: Math.random() < .2 ? rnd(.4, .7) : rnd(.06, .22), w: rnd(.4, 1.2), tinte: Math.random(),
+    })));
+    // Raíces: fibras sueltas que salen de cada esfera hacia afuera y se desvanecen
+    const raices = esferas.map(() => Array.from({ length: 14 }, () => ({
+      ang: rnd(0, 6.28), largo: rnd(.08, .2), amp: rnd(.3, 1), ph: rnd(0, 6.28), a: rnd(.08, .25), tinte: Math.random(),
+    })));
+
+    // Malla geodésica irregular
+    const N = 120;
+    const puntos = Array.from({ length: N }, (_, i) => {
+      const y = 1 - (i / (N - 1)) * 2, rad = Math.sqrt(1 - y * y), th = i * 2.39996 + rnd(-.25, .25);
+      const k = rnd(.93, 1.04);
+      return [Math.cos(th) * rad * k, y * k, Math.sin(th) * rad * k, rnd(.4, 1)];
+    });
+    const vecinos: [number, number][] = [];
+    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+      const d = Math.hypot(puntos[i][0] - puntos[j][0], puntos[i][1] - puntos[j][1], puntos[i][2] - puntos[j][2]);
+      if (d < 0.36) vecinos.push([i, j]);
+    }
+    const polvo = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(.3, 1.4), p: rnd(0, 6) }));
+
+    let W = 0, H = 0, dpr = 1;
+    const medir = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = red.clientWidth; H = red.clientHeight;
+      for (const c of [canvas, fib]) { c.width = W * dpr; c.height = H * dpr; }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    new ResizeObserver(medir).observe(red);
+    medir();
+
+    const pos = esferas.map(() => ({ x: 0, y: 0, r: 0 }));
+    const color = (tinte: number, a: number) => {
+      // Mezcla entre lavanda y celeste
+      const r = 185 - tinte * 45, g = 170 + tinte * 50, b = 255;
+      return `rgba(${r | 0},${g | 0},${b},${a})`;
+    };
+
+    const dibujar = (ms: number) => {
+      const t = quieto ? 0 : ms / 1000;
+      ctx.clearRect(0, 0, W, H);
+      const cx = W / 2, cy = H * 0.47, R = Math.min(W, H) * 0.5;
+
+      const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+      halo.addColorStop(0, 'rgba(70,110,230,0.20)'); halo.addColorStop(.65, 'rgba(70,60,180,0.07)'); halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+
+      for (const s of polvo) {
+        ctx.fillStyle = `rgba(170,210,255,${0.2 + 0.3 * Math.sin(t * .7 + s.p)})`;
+        ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Malla geodésica que gira lento, en tonos cian
+      const ang = t * 0.04, ca = Math.cos(ang), sa = Math.sin(ang), ci = Math.cos(.3), si = Math.sin(.3);
+      const proy = puntos.map(([x, y, z, b]) => {
+        const x1 = x * ca + z * sa, z1 = -x * sa + z * ca;
+        return { x: cx + x1 * R, y: cy + (y * ci - z1 * si) * R, z: y * si + z1 * ci, b };
+      });
+      ctx.lineWidth = 0.7;
+      for (const [i, j] of vecinos) {
+        const a = proy[i], b = proy[j], prof = (a.z + b.z + 2) / 4;
+        ctx.strokeStyle = `rgba(110,215,255,${0.06 + 0.34 * prof})`;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of proy) {
+        const prof = (p.z + 1) / 2, rr = 0.7 + prof * 1.6 * p.b;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr * 3);
+        g.addColorStop(0, `rgba(200,240,255,${0.25 + 0.7 * prof * p.b})`); g.addColorStop(1, 'rgba(100,200,255,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, rr * 3, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+
+      esferas.forEach((el, i) => {
+        const f = flot[i];
+        const dx = Math.sin(t * f.fx * 6.28 + f.p) * f.ax * W / 100;
+        const dy = Math.cos(t * f.fy * 6.28 + f.p * 1.3) * f.ay * H / 100;
+        pos[i].x = (+el.dataset.x! / 100) * W + dx;
+        pos[i].y = (+el.dataset.y! / 100) * H + dy;
+        pos[i].r = (el.firstElementChild as HTMLElement).offsetWidth / 2;
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+      });
+
+      // Fibras
+      fctx.clearRect(0, 0, W, H);
+      fctx.globalCompositeOperation = 'lighter';
+      fctx.lineCap = 'round';
+      const PASOS = 26;
+      enlaces.forEach(([ia, ib], k) => {
+        const A = pos[ia], B = pos[ib];
+        const dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy);
+        const nx = -dy / L, ny = dx / L;           // normal al enlace
+        const ancho = Math.min(L * 0.2, W * 0.07); // apertura del haz al centro
+        const curv = Math.sin(t * .2 + k * 1.7) * L * 0.06;
+        for (const f of haces[k]) {
+          fctx.strokeStyle = color(f.tinte, f.a);
+          fctx.lineWidth = f.w;
+          fctx.beginPath();
+          for (let s = 0; s <= PASOS; s++) {
+            const u = s / PASOS, campana = Math.sin(Math.PI * u);
+            const borde = (1 - u) * f.sal * A.r * .55 + u * f.lle * B.r * .55;
+            const onda = Math.sin(u * f.fr * 6.28 + t * f.v * 6.28 + f.ph) * f.amp * ancho * .35 * campana;
+            const off = borde * (1 - campana) + (f.d * ancho + curv) * campana + onda;
+            const x = A.x + dx * u + nx * off, y = A.y + dy * u + ny * off;
+            s ? fctx.lineTo(x, y) : fctx.moveTo(x, y);
+          }
+          fctx.stroke();
+        }
+      });
+      // Raíces sueltas
+      pos.forEach((P, i) => {
+        for (const r of raices[i]) {
+          const a0 = r.ang + Math.sin(t * .15 + r.ph) * .2, L = r.largo * W;
+          const g = fctx.createLinearGradient(P.x, P.y, P.x + Math.cos(a0) * L, P.y + Math.sin(a0) * L);
+          g.addColorStop(0, color(r.tinte, r.a)); g.addColorStop(1, color(r.tinte, 0));
+          fctx.strokeStyle = g; fctx.lineWidth = .7; fctx.beginPath();
+          for (let s = 0; s <= 14; s++) {
+            const u = s / 14, d = P.r * .8 + u * L;
+            const w = Math.sin(u * 9 + t * 1.2 + r.ph) * r.amp * 6 * u;
+            const x = P.x + Math.cos(a0) * d - Math.sin(a0) * w, y = P.y + Math.sin(a0) * d + Math.cos(a0) * w;
+            s ? fctx.lineTo(x, y) : fctx.moveTo(x, y);
+          }
+          fctx.stroke();
+        }
+      });
+      fctx.globalCompositeOperation = 'source-over';
+
+      // Resplandor: fibras difuminadas debajo, luego las fibras nítidas encima
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.filter = `blur(${4 * dpr}px)`; ctx.globalAlpha = .55; ctx.drawImage(fib, 0, 0);
+      ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(fib, 0, 0);
+      ctx.restore();
+
+      // Pulsos de luz viajando por los haces
+      if (!quieto) {
+        ctx.globalCompositeOperation = 'lighter';
+        enlaces.forEach(([ia, ib], k) => {
+          const A = pos[ia], B = pos[ib], u = (t * .09 + k * .37) % 1;
+          const x = A.x + (B.x - A.x) * u, y = A.y + (B.y - A.y) * u, rr = 9;
+          const g = ctx.createRadialGradient(x, y, 0, x, y, rr);
+          g.addColorStop(0, 'rgba(235,245,255,.9)'); g.addColorStop(1, 'rgba(150,170,255,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      if (!quieto) requestAnimationFrame(dibujar);
+    };
+    requestAnimationFrame(dibujar);
+  }
+  document.querySelectorAll<HTMLElement>('.red').forEach(iniciar);
+</script>
